@@ -140,8 +140,8 @@ static int
 hwtest(const uint32_t state[static restrict 8],
     const uint8_t block[static restrict 64],
     uint32_t W[static restrict 64], uint32_t S[static restrict 8],
-    void(* func)(uint32_t [static restrict 8],
-    const uint8_t [static restrict 64], uint32_t W[static restrict 64],
+    void(* func)(uint32_t state[static restrict 8],
+    const uint8_t block[static restrict 64], uint32_t W[static restrict 64],
     uint32_t S[static restrict 8]))
 {
 	uint32_t state_sw[8];
@@ -248,7 +248,7 @@ SHA256_Transform(uint32_t state[static restrict 8],
 	assert(hwaccel != HW_UNSET);
 #endif
 
-	switch(hwaccel) {
+	switch (hwaccel) {
 #if defined(CPUSUPPORT_X86_SHANI) && defined(CPUSUPPORT_X86_SSSE3)
 	case HW_X86_SHANI:
 		SHA256_Transform_shani(state, block);
@@ -646,8 +646,10 @@ PBKDF2_SHA256(const uint8_t * passwd, size_t passwdlen, const uint8_t * salt,
 	int k;
 	size_t clen;
 
+#if SIZE_MAX >= (32 * UINT32_MAX)
 	/* Sanity-check. */
 	assert(dkLen <= 32 * (size_t)(UINT32_MAX));
+#endif
 
 	/* Compute HMAC state after processing P. */
 	_HMAC_SHA256_Init(&Phctx, passwd, passwdlen,

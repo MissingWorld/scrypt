@@ -64,7 +64,7 @@ usage(void)
 			warnp("Invalid option: %s %s", ch, optarg);	\
 		exit(1);						\
 	}								\
-} while(0)
+} while (0)
 
 int
 main(int argc, char *argv[])
@@ -130,7 +130,7 @@ main(int argc, char *argv[])
 			params.maxmem = (size_t)maxmem64;
 			break;
 		GETOPT_OPTARG("-m"):
-			if (PARSENUM(&params.maxmemfrac, optarg, 0, 1)) {
+			if (PARSENUM(&params.maxmemfrac, optarg, 0, 0.5)) {
 				warnp("Invalid option: -m %s", optarg);
 				exit(1);
 			}
@@ -197,6 +197,12 @@ main(int argc, char *argv[])
 	}
 	if ((params.p != 0) && ((params.logN == 0) || (params.r == 0))) {
 		warn0("If -p is set, --logN and -r must also be set");
+		goto err0;
+	}
+
+	/* We can't have a maxmemfrac of 0. */
+	if (params.maxmemfrac == 0.0) {
+		warn0("-m must be greater than 0");
 		goto err0;
 	}
 
@@ -335,6 +341,10 @@ done:
 			break;
 		case SCRYPT_ETOOSLOW:
 			warn0("Decrypting file would take too much CPU time");
+			break;
+		case SCRYPT_EBIGSLOW:
+			warn0("Decrypting file would require too much memory"
+			    " and CPU time");
 			break;
 		case SCRYPT_EPASS:
 			warn0("Passphrase is incorrect");

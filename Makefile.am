@@ -1,5 +1,5 @@
 bin_PROGRAMS=	scrypt
-noinst_PROGRAMS=	tests/verify-strings/test_scrypt			\
+noinst_PROGRAMS=	tests/verify-strings/test_scrypt		\
 	tests/valgrind/potential-memleaks
 dist_man_MANS=$(scrypt_man_MANS)
 ACLOCAL_AMFLAGS=	-I m4
@@ -24,6 +24,7 @@ crypto_scrypt_files=	lib/crypto/crypto_scrypt_smix.c			\
 			libcperciva/alg/sha256_shani.h			\
 			libcperciva/alg/sha256_sse2.h			\
 			libcperciva/cpusupport/cpusupport.h		\
+			libcperciva/cpusupport/cpusupport_arm_aes.c	\
 			libcperciva/cpusupport/cpusupport_arm_sha256.c	\
 			libcperciva/cpusupport/cpusupport_x86_aesni.c	\
 			libcperciva/cpusupport/cpusupport_x86_rdrand.c	\
@@ -51,9 +52,12 @@ scrypt_SOURCES=		main.c					\
 			libcperciva/crypto/crypto_aes.h		\
 			libcperciva/crypto/crypto_aes_aesni.h	\
 			libcperciva/crypto/crypto_aes_aesni_m128i.h \
+			libcperciva/crypto/crypto_aes_arm.h	\
+			libcperciva/crypto/crypto_aes_arm_u8.h	\
 			libcperciva/crypto/crypto_aesctr.c	\
 			libcperciva/crypto/crypto_aesctr.h	\
 			libcperciva/crypto/crypto_aesctr_aesni.h \
+			libcperciva/crypto/crypto_aesctr_arm.h	\
 			libcperciva/crypto/crypto_entropy.c	\
 			libcperciva/crypto/crypto_entropy.h	\
 			libcperciva/crypto/crypto_entropy_rdrand.h \
@@ -95,6 +99,7 @@ AM_CPPFLAGS=		-I$(srcdir)/lib				\
 scrypt_LDADD=		libcperciva_aesni.la libcperciva_rdrand.la \
 			libcperciva_shani.la libscrypt_sse2.la	\
 			libcperciva_arm_sha256.la		\
+			libcperciva_arm_aes.la			\
 			${LDADD_POSIX}
 scrypt_man_MANS=	scrypt.1
 
@@ -109,6 +114,12 @@ libcperciva_aesni_la_SOURCES=	libcperciva/crypto/crypto_aes_aesni.c \
 			libcperciva/crypto/crypto_aesctr_aesni.c
 nodist_libcperciva_aesni_la_SOURCES=	cpusupport-config.h
 libcperciva_aesni_la_CFLAGS=`. ./cpusupport-config.h; echo $${CFLAGS_X86_AESNI}`
+
+noinst_LTLIBRARIES+=	libcperciva_arm_aes.la
+libcperciva_arm_aes_la_SOURCES=	libcperciva/crypto/crypto_aes_arm.c \
+			libcperciva/crypto/crypto_aesctr_arm.c
+nodist_libcperciva_arm_aes_la_SOURCES=	cpusupport-config.h
+libcperciva_arm_aes_la_CFLAGS=`. ./cpusupport-config.h; echo $${CFLAGS_ARM_AES}`
 
 noinst_LTLIBRARIES+=	libcperciva_rdrand.la
 libcperciva_rdrand_la_SOURCES=	libcperciva/crypto/crypto_entropy_rdrand.c
@@ -128,7 +139,8 @@ libcperciva_arm_sha256_la_CFLAGS=`. ./cpusupport-config.h; echo $${CFLAGS_ARM_SH
 
 # Library from libcperciva and scrypt code.
 noinst_LTLIBRARIES+=	libscrypt_sse2.la
-libscrypt_sse2_la_SOURCES=	libcperciva/alg/sha256_sse2.c lib/crypto/crypto_scrypt_smix_sse2.c
+libscrypt_sse2_la_SOURCES=	libcperciva/alg/sha256_sse2.c	\
+				lib/crypto/crypto_scrypt_smix_sse2.c
 nodist_libscrypt_sse2_la_SOURCES=	cpusupport-config.h
 libscrypt_sse2_la_CFLAGS=`. ./cpusupport-config.h; echo $${CFLAGS_X86_SSE2}`
 
@@ -150,10 +162,10 @@ endif
 libscrypt_kdf_la_SOURCES=	$(crypto_scrypt_files)
 libscrypt_kdf_la_LIBADD=	libcperciva_shani.la libscrypt_sse2.la	\
 				libcperciva_arm_sha256.la
-# Workaround for "created with both libtool and without"
+# Workaround for "created with both libtool and without".
 libscrypt_kdf_la_CFLAGS=	$(AM_CFLAGS)
 
-# Test libscrypt-kdf compile
+# Test libscrypt-kdf compile.
 tests_libscrypt_kdf_sample_libscrypt_kdf_SOURCES=	\
 	tests/libscrypt-kdf/sample-libscrypt-kdf.c
 tests_libscrypt_kdf_sample_libscrypt_kdf_CPPFLAGS=	\
@@ -163,7 +175,7 @@ tests_libscrypt_kdf_sample_libscrypt_kdf_LDADD=		libscrypt-kdf.la
 # crypto_aesctr_shared.c is in this list because it can't be included in the
 # _SOURCES because it should only be included as part of another translation
 # unit.
-EXTRA_DIST = \
+EXTRA_DIST=							\
 	COPYRIGHT						\
 	FORMAT							\
 	README.md						\
@@ -180,6 +192,7 @@ EXTRA_DIST = \
 	libcperciva/POSIX/posix-restrict.c			\
 	libcperciva/POSIX/posix-stat-st_mtim.c			\
 	libcperciva/cpusupport/Build/cpusupport-ARM-SHA256.c	\
+	libcperciva/cpusupport/Build/cpusupport-HWCAP-ELF_AUX_INFO.c \
 	libcperciva/cpusupport/Build/cpusupport-HWCAP-GETAUXVAL.c \
 	libcperciva/cpusupport/Build/cpusupport-X86-AESNI.c	\
 	libcperciva/cpusupport/Build/cpusupport-X86-CPUID.c	\
@@ -201,7 +214,7 @@ EXTRA_DIST = \
 	tests/verify-strings/test_scrypt_good.enc
 
 # Binary to test the crypto_scrypt() function.
-tests_verify_strings_test_scrypt_SOURCES =			\
+tests_verify_strings_test_scrypt_SOURCES=			\
 	tests/verify-strings/test_scrypt.c			\
 	$(crypto_scrypt_files)
 
@@ -211,7 +224,7 @@ tests_verify_strings_test_scrypt_LDADD=	libcperciva_shani.la	\
 	${LDADD_POSIX}
 
 # Eliminate false positives while memory-checking for the test framework.
-tests_valgrind_potential_memleaks_SOURCES = tests/valgrind/potential-memleaks.c
+tests_valgrind_potential_memleaks_SOURCES= tests/valgrind/potential-memleaks.c
 
 .PHONY: test
 # we can't only build "scrypt tests/verify-strings/test_scrypt" because that
